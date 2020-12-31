@@ -31,7 +31,7 @@ sets the bass cut. Parameter range: 0.0 to 1.0.
 Example:  
 ```reverb.lodamp(0.5);  // cut more bass in the reverb tail to make the sound brighter ```  
 
-Audio connections used in the exmaple project:  
+Audio connections used in the example project:  
 ![alt text][pic1]  
 
 ### Additional config:  
