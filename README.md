@@ -2,7 +2,6 @@
 Teensy4.0 Audio Lib Components:  
 
 ## Stereo Plate Reverb
----
 Fully stereo in/out reverb component for the standard 16bit Audio library.  
 
 ### Connections:  
@@ -47,4 +46,4 @@ Copyright 12.2020 by Piotr Zapart
 www.hexefx.com
 
 
-[pic1]: effect_platervbstereo/StereoPlateReverb.png "Stereo plate reverb connections"
+[pic1]: Hx_PlateReverb/StereoPlateReverb.png "Stereo plate reverb connections"
