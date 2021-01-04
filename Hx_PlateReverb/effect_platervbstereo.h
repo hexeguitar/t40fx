@@ -98,7 +98,7 @@ public:
     void lowpass(float n)
     {
         n = constrain(n, 0.0, 1.0);
-        n = map(n, 0.0, 1.0, 0.05, 1.0);
+        n = map(n*n*n, 0.0, 1.0, 0.05, 1.0);
         master_lowpass_f = n;
     }
     
