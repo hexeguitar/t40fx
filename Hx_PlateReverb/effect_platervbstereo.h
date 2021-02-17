@@ -69,9 +69,9 @@ public:
 
     void size(float n)
     {
-        n = constrain(n, 0.0, 1.0);
-        n = map (n, 0.0, 1.0, 0.2, rv_time_k_max);
-        float32_t attn = 0.5 * map(n, 0.0, rv_time_k_max, 0.5, 1.0);
+        n = constrain(n, 0.0f, 1.0f);
+        n = map (n, 0.0f, 1.0f, 0.2f, rv_time_k_max);
+        float32_t attn = 0.5f * map(n, 0.0f, rv_time_k_max, 0.5f, 1.0f);
         AudioNoInterrupts();
         rv_time_k = n;
         input_attn = attn;
@@ -80,32 +80,32 @@ public:
 
     void hidamp(float n)
     {
-        n = constrain(n, 0.0, 1.0);
+        n = constrain(n, 0.0f, 1.0f);
         AudioNoInterrupts();
-        lp_hidamp_k = 1.0 - n;
+        lp_hidamp_k = 1.0f - n;
         AudioInterrupts();
     }
     
     void lodamp(float n)
     {
-        n = constrain(n, 0.0, 1.0);
+        n = constrain(n, 0.0f, 1.0f);
         AudioNoInterrupts();
         lp_lodamp_k = -n;
-        rv_time_scaler = 1.0 - n * 0.12;        // limit the max reverb time, otherwise it will clip
+        rv_time_scaler = 1.0f - n * 0.12f;        // limit the max reverb time, otherwise it will clip
         AudioInterrupts();
     }
 
     void lowpass(float n)
     {
-        n = constrain(n, 0.0, 1.0);
-        n = map(n*n*n, 0.0, 1.0, 0.05, 1.0);
+        n = constrain(n, 0.0f, 1.0f);
+        n = map(n*n*n, 0.0f, 1.0f, 0.05f, 1.0f);
         master_lowpass_f = n;
     }
     
     void diffusion(float n)
     {
-        n = constrain(n, 0.0, 1.0);
-        n = map(n, 0.0, 1.0, 0.005, 0.65);
+        n = constrain(n, 0.0f, 1.0f);
+        n = map(n, 0.0f, 1.0f, 0.005f, 0.65f);
         AudioNoInterrupts();
         in_allp_k = n;
         loop_allp_k = n;
@@ -197,7 +197,7 @@ private:
     float32_t master_lowpass_l;
     float32_t master_lowpass_r;
 
-    const float32_t rv_time_k_max = 0.95;
+    const float32_t rv_time_k_max = 0.95f;
     float32_t rv_time_k;         // reverb time coeff
     float32_t rv_time_scaler;    // with high lodamp settings lower the max reverb time to avoid clipping
 

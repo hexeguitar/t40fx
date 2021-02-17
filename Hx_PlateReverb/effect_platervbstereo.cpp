@@ -34,12 +34,12 @@
 #include "utility/dspinst.h"
 #include "synth_waveform.h"
 
-#define INP_ALLP_COEFF      (0.65)
-#define LOOP_ALLOP_COEFF    (0.65)
+#define INP_ALLP_COEFF      (0.65f)
+#define LOOP_ALLOP_COEFF    (0.65f)
 
-#define HI_LOSS_FREQ        (0.3)
-#define HI_LOSS_FREQ_MAX    (0.08)
-#define LO_LOSS_FREQ        (0.06)
+#define HI_LOSS_FREQ        (0.3f)
+#define HI_LOSS_FREQ_MAX    (0.08f)
+#define LO_LOSS_FREQ        (0.06f)
 
 #define LFO_AMPL_BITS       (5)                             // 2^LFO_AMPL_BITS will be the LFO amplitude 
 #define LFO_AMPL            ((1<<LFO_AMPL_BITS) + 1)        // lfo amplitude
@@ -47,10 +47,10 @@
 #define LFO_FRAC_BITS       (16 - LFO_AMPL_BITS)            // fractional part used for linear interpolation
 #define LFO_FRAC_MASK       ((1<<LFO_FRAC_BITS)-1)          // mask for the above
 
-#define LFO1_FREQ_HZ        (1.37)                          // LFO1 frequency in Hz
-#define LFO2_FREQ_HZ        (1.52)                          // LFO2 frequency in Hz
+#define LFO1_FREQ_HZ        (1.37f)                          // LFO1 frequency in Hz
+#define LFO2_FREQ_HZ        (1.52f)                          // LFO2 frequency in Hz
 
-#define RV_MASTER_LOWPASS_F (0.6)                           // master lowpass scaled frequency coeff. 
+#define RV_MASTER_LOWPASS_F (0.6f)                           // master lowpass scaled frequency coeff. 
 
 extern "C" {
 extern const int16_t AudioWaveformSine[257];
@@ -84,7 +84,7 @@ float32_t DMAMEM lp_dly4_buf[3698];
 
 AudioEffectPlateReverb::AudioEffectPlateReverb() : AudioStream(2, inputQueueArray)
 {
-    input_attn = 0.5;
+    input_attn = 0.5f;
     in_allp_k = INP_ALLP_COEFF;
 
     memset(in_allp1_bufL, 0, sizeof(in_allp1_bufL));
@@ -105,7 +105,7 @@ AudioEffectPlateReverb::AudioEffectPlateReverb() : AudioStream(2, inputQueueArra
     in_allp3_idxR = 0;
     in_allp4_idxR = 0;
 
-    in_allp_out_R = 0;
+    in_allp_out_R = 0.0f;
 
     memset(lp_allp1_buf, 0, sizeof(lp_allp1_buf));
     memset(lp_allp2_buf, 0, sizeof(lp_allp2_buf));
@@ -116,7 +116,7 @@ AudioEffectPlateReverb::AudioEffectPlateReverb() : AudioStream(2, inputQueueArra
     lp_allp3_idx = 0;
     lp_allp4_idx = 0;
     loop_allp_k = LOOP_ALLOP_COEFF;
-    lp_allp_out = 0;
+    lp_allp_out = 0.0f;
 
     memset(lp_dly1_buf, 0, sizeof(lp_dly1_buf));
     memset(lp_dly2_buf, 0, sizeof(lp_dly2_buf));
@@ -127,25 +127,25 @@ AudioEffectPlateReverb::AudioEffectPlateReverb() : AudioStream(2, inputQueueArra
     lp_dly3_idx = 0;
     lp_dly4_idx = 0;
 
-    lp_hidamp_k = 1.0;
-    lp_lodamp_k = 0.0;
+    lp_hidamp_k = 1.0f;
+    lp_lodamp_k = 0.0f;
 
     lp_lowpass_f = HI_LOSS_FREQ;
     lp_hipass_f = LO_LOSS_FREQ;
 
-    lpf1 = 0;
-    lpf2 = 0;
-    lpf3 = 0;
-    lpf4 = 0;
+    lpf1 = 0.0f;
+    lpf2 = 0.0f;
+    lpf3 = 0.0f;
+    lpf4 = 0.0f;
 
-    hpf1 = 0;
-    hpf2 = 0;
-    hpf3 = 0;
-    hpf4 = 0;
+    hpf1 = 0.0f;
+    hpf2 = 0.0f;
+    hpf3 = 0.0f;
+    hpf4 = 0.0f;
 
     master_lowpass_f = RV_MASTER_LOWPASS_F;
-    master_lowpass_l = 0;
-    master_lowpass_r = 0;
+    master_lowpass_l = 0.0f;
+    master_lowpass_r = 0.0f;
 
     lfo1_phase_acc = 0;
     lfo1_adder = (UINT32_MAX + 1)/(AUDIO_SAMPLE_RATE_EXACT * LFO1_FREQ_HZ);
@@ -385,10 +385,10 @@ void AudioEffectPlateReverb::update()
         if (temp16  >= sizeof(lp_dly1_buf)/sizeof(float32_t)) temp16 = 0;
         temp2 = lp_dly1_buf[temp16];    // sample next
         input = (float32_t)(lfo1_out_cos & LFO_FRAC_MASK) / ((float32_t)LFO_FRAC_MASK); // interp. k
-        acc = (temp1*(1.0-input) + temp2*input)* 0.8;
+        acc = (temp1*(1.0f-input) + temp2*input)* 0.8f;
 #else
         temp16 = (lp_dly1_idx + lp_dly1_offset_L) %  (sizeof(lp_dly1_buf)/sizeof(float32_t));
-        acc = lp_dly1_buf[temp16]* 0.8;
+        acc = lp_dly1_buf[temp16]* 0.8f;
 #endif
 
 
@@ -398,10 +398,10 @@ void AudioEffectPlateReverb::update()
         if (temp16  >= sizeof(lp_dly2_buf)/sizeof(float32_t)) temp16 = 0;
         temp2 = lp_dly2_buf[temp16]; 
         input = (float32_t)(lfo1_out_sin & LFO_FRAC_MASK) / ((float32_t)LFO_FRAC_MASK); // interp. k
-        acc += (temp1*(1.0-input) + temp2*input)* 0.7;
+        acc += (temp1*(1.0f-input) + temp2*input)* 0.7f;
 #else
         temp16 = (lp_dly2_idx + lp_dly2_offset_L) % (sizeof(lp_dly2_buf)/sizeof(float32_t));
-        acc += (temp1*(1.0-input) + temp2*input)* 0.6;
+        acc += (temp1*(1.0f-input) + temp2*input)* 0.6f;
 #endif
 
         temp16 = (lp_dly3_idx + lp_dly3_offset_L + (lfo2_out_cos>>LFO_FRAC_BITS)) % (sizeof(lp_dly3_buf)/sizeof(float32_t));
@@ -409,20 +409,20 @@ void AudioEffectPlateReverb::update()
         if (temp16  >= sizeof(lp_dly3_buf)/sizeof(float32_t)) temp16 = 0;
         temp2 = lp_dly3_buf[temp16]; 
         input = (float32_t)(lfo2_out_cos & LFO_FRAC_MASK) / ((float32_t)LFO_FRAC_MASK); // interp. k
-        acc += (temp1*(1.0-input) + temp2*input)* 0.6;
+        acc += (temp1*(1.0f-input) + temp2*input)* 0.6f;
 
         temp16 = (lp_dly4_idx + lp_dly4_offset_L + (lfo2_out_sin>>LFO_FRAC_BITS)) % (sizeof(lp_dly4_buf)/sizeof(float32_t));
         temp1 = lp_dly4_buf[temp16++];
         if (temp16  >= sizeof(lp_dly4_buf)/sizeof(float32_t)) temp16 = 0;
         temp2 = lp_dly4_buf[temp16]; 
         input = (float32_t)(lfo2_out_sin & LFO_FRAC_MASK) / ((float32_t)LFO_FRAC_MASK); // interp. k
-        acc += (temp1*(1.0-input) + temp2*input)* 0.5;
+        acc += (temp1*(1.0f-input) + temp2*input)* 0.5f;
 
         // Master lowpass filter
         temp1 = acc - master_lowpass_l;
         master_lowpass_l += temp1 * master_lowpass_f;
 
-        outblockL->data[i] =(int16_t)(master_lowpass_l * 32767.0); //sat16(output * 30, 0);
+        outblockL->data[i] =(int16_t)(master_lowpass_l * 32767.0f); //sat16(output * 30, 0);
 
         // Channel R
         #ifdef TAP1_MODULATED
@@ -432,10 +432,10 @@ void AudioEffectPlateReverb::update()
         temp2 = lp_dly1_buf[temp16];    // sample next
         input = (float32_t)(lfo2_out_cos & LFO_FRAC_MASK) / ((float32_t)LFO_FRAC_MASK); // interp. k
 
-        acc = (temp1*(1.0-input) + temp2*input)* 0.8;
+        acc = (temp1*(1.0f-input) + temp2*input)* 0.8f;
         #else
         temp16 = (lp_dly1_idx + lp_dly1_offset_R) %  (sizeof(lp_dly1_buf)/sizeof(float32_t));
-        acc = lp_dly1_buf[temp16] * 0.8;
+        acc = lp_dly1_buf[temp16] * 0.8f;
         #endif
 #ifdef TAP2_MODULATED
         temp16 = (lp_dly2_idx + lp_dly2_offset_R + (lfo1_out_cos>>LFO_FRAC_BITS)) % (sizeof(lp_dly2_buf)/sizeof(float32_t));
@@ -443,29 +443,29 @@ void AudioEffectPlateReverb::update()
         if (temp16  >= sizeof(lp_dly2_buf)/sizeof(float32_t)) temp16 = 0;
         temp2 = lp_dly2_buf[temp16]; 
         input = (float32_t)(lfo1_out_cos & LFO_FRAC_MASK) / ((float32_t)LFO_FRAC_MASK); // interp. k
-        acc += (temp1*(1.0-input) + temp2*input)* 0.7;
+        acc += (temp1*(1.0f-input) + temp2*input)* 0.7f;
 #else
         temp16 = (lp_dly2_idx + lp_dly2_offset_R) % (sizeof(lp_dly2_buf)/sizeof(float32_t));
-        acc += (temp1*(1.0-input) + temp2*input)* 0.7;
+        acc += (temp1*(1.0f-input) + temp2*input)* 0.7f;
 #endif
         temp16 = (lp_dly3_idx + lp_dly3_offset_R + (lfo2_out_sin>>LFO_FRAC_BITS)) % (sizeof(lp_dly3_buf)/sizeof(float32_t));
         temp1 = lp_dly3_buf[temp16++];
         if (temp16  >= sizeof(lp_dly3_buf)/sizeof(float32_t)) temp16 = 0;
         temp2 = lp_dly3_buf[temp16]; 
         input = (float32_t)(lfo2_out_sin & LFO_FRAC_MASK) / ((float32_t)LFO_FRAC_MASK); // interp. k
-        acc += (temp1*(1.0-input) + temp2*input)* 0.6;
+        acc += (temp1*(1.0f-input) + temp2*input)* 0.6f;
 
         temp16 = (lp_dly4_idx + lp_dly4_offset_R + (lfo1_out_sin>>LFO_FRAC_BITS)) % (sizeof(lp_dly4_buf)/sizeof(float32_t));
         temp1 = lp_dly4_buf[temp16++];
         if (temp16  >= sizeof(lp_dly4_buf)/sizeof(float32_t)) temp16 = 0;
         temp2 = lp_dly4_buf[temp16]; 
         input = (float32_t)(lfo2_out_cos & LFO_FRAC_MASK) / ((float32_t)LFO_FRAC_MASK); // interp. k
-        acc += (temp1*(1.0-input) + temp2*input)* 0.5;
+        acc += (temp1*(1.0f-input) + temp2*input)* 0.5f;
 
         // Master lowpass filter
         temp1 = acc - master_lowpass_r;
         master_lowpass_r += temp1 * master_lowpass_f;
-        outblockR->data[i] =(int16_t)(master_lowpass_r * 32767.0);
+        outblockR->data[i] =(int16_t)(master_lowpass_r * 32767.0f);
 		
 	}
     transmit(outblockL, 0);
