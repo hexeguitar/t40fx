@@ -153,7 +153,7 @@ AudioEffectPlateReverb::AudioEffectPlateReverb() : AudioStream(2, inputQueueArra
     lfo2_adder = (UINT32_MAX + 1)/(AUDIO_SAMPLE_RATE_EXACT * LFO2_FREQ_HZ);  
 }
 
-#define sat16(n, rshift) signed_saturate_rshift((n), 16, (rshift))
+// #define sat16(n, rshift) signed_saturate_rshift((n), 16, (rshift))
 
 // TODO: move this to one of the data files, use in output_adat.cpp, output_tdm.cpp, etc
 static const audio_block_t zeroblock = {
@@ -199,6 +199,35 @@ void AudioEffectPlateReverb::update()
     int32_t y0, y1;
     int64_t y;
     uint32_t idx;
+    static bool cleanup_done = false;
+    // handle bypass, 1st call will clean the buffers to avoid continuing the previous reverb tail
+    if (bypass)
+    {
+        if (!cleanup_done)
+        {
+            memset(in_allp1_bufL, 0, sizeof(in_allp1_bufL));
+            memset(in_allp2_bufL, 0, sizeof(in_allp2_bufL));
+            memset(in_allp3_bufL, 0, sizeof(in_allp3_bufL));
+            memset(in_allp4_bufL, 0, sizeof(in_allp4_bufL));
+            memset(in_allp1_bufR, 0, sizeof(in_allp1_bufR));
+            memset(in_allp2_bufR, 0, sizeof(in_allp2_bufR));
+            memset(in_allp3_bufR, 0, sizeof(in_allp3_bufR));
+            memset(in_allp4_bufR, 0, sizeof(in_allp4_bufR));
+            memset(lp_allp1_buf, 0, sizeof(lp_allp1_buf));
+            memset(lp_allp2_buf, 0, sizeof(lp_allp2_buf));
+            memset(lp_allp3_buf, 0, sizeof(lp_allp3_buf));
+            memset(lp_allp4_buf, 0, sizeof(lp_allp4_buf));
+            memset(lp_dly1_buf, 0, sizeof(lp_dly1_buf));
+            memset(lp_dly2_buf, 0, sizeof(lp_dly2_buf));
+            memset(lp_dly3_buf, 0, sizeof(lp_dly3_buf));
+            memset(lp_dly4_buf, 0, sizeof(lp_dly4_buf));
+
+            cleanup_done = true;
+        }
+        return;
+    }
+    cleanup_done = false;
+
 
     blockL = receiveReadOnly(0);
     blockR = receiveReadOnly(1);
@@ -214,6 +243,7 @@ void AudioEffectPlateReverb::update()
 
 	if (!blockL) blockL = &zeroblock;
     if (!blockR) blockR = &zeroblock;
+
     // convert data to float32
     arm_q15_to_float((q15_t *)blockL->data, input_blockL, AUDIO_BLOCK_SAMPLES);
     arm_q15_to_float((q15_t *)blockR->data, input_blockR, AUDIO_BLOCK_SAMPLES);

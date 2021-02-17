@@ -72,27 +72,27 @@ public:
         n = constrain(n, 0.0f, 1.0f);
         n = map (n, 0.0f, 1.0f, 0.2f, rv_time_k_max);
         float32_t attn = 0.5f * map(n, 0.0f, rv_time_k_max, 0.5f, 1.0f);
-        AudioNoInterrupts();
+        __disable_irq();
         rv_time_k = n;
         input_attn = attn;
-        AudioInterrupts();
+         __enable_irq();
     }
 
     void hidamp(float n)
     {
         n = constrain(n, 0.0f, 1.0f);
-        AudioNoInterrupts();
+        __disable_irq();
         lp_hidamp_k = 1.0f - n;
-        AudioInterrupts();
+         __enable_irq();
     }
     
     void lodamp(float n)
     {
         n = constrain(n, 0.0f, 1.0f);
-        AudioNoInterrupts();
+        __disable_irq();
         lp_lodamp_k = -n;
         rv_time_scaler = 1.0f - n * 0.12f;        // limit the max reverb time, otherwise it will clip
-        AudioInterrupts();
+         __enable_irq();
     }
 
     void lowpass(float n)
@@ -106,14 +106,18 @@ public:
     {
         n = constrain(n, 0.0f, 1.0f);
         n = map(n, 0.0f, 1.0f, 0.005f, 0.65f);
-        AudioNoInterrupts();
+        __disable_irq();
         in_allp_k = n;
         loop_allp_k = n;
-        AudioInterrupts();        
+         __enable_irq();
     }
 
     float32_t get_size(void) {return rv_time_k;}
+    bool get_bypass(void) {return bypass;}
+    void set_bypass(bool state) {bypass = state;};
+    void tgl_bypass(void) {bypass ^=1;}
 private:
+    bool bypass = false;
     audio_block_t *inputQueueArray[2];
 #ifndef REVERB_USE_DMAMEM
     float32_t input_blockL[AUDIO_BLOCK_SAMPLES];
