@@ -36,7 +36,7 @@ Disables (true) or enables (false) the reverb engine.
 Example:  
 ```reverb.bypass(true);  // disable the reverb (saves CPU load) ```  
 
-```bool set_get(void);```  
+```bool get_bypass(void);```  
 Returns the current reverb bypass status.
 
 ```void tgl_bypass(void);```  
