@@ -1,8 +1,8 @@
 # t40fx
 Teensy4.0 Audio Lib Components:  
 
-## [Stereo Plate Reverb](/Hx_Plate_reverb/ "Stereo Plate reverb")  
-## [Mono 12 stage Phaser](/Hx_Phaser/ "Mono 12 stage phaser")  
+## [Stereo Plate Reverb](https://github.com/hexeguitar/t40fx/tree/main/Hx_PlateReverb "Stereo Plate reverb")  
+## [Mono 12 stage Phaser](https://github.com/hexeguitar/t40fx/tree/main/Hx_Phaser "Mono 12 stage phaser")  
 
 ___
 
