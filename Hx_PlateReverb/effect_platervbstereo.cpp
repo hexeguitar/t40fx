@@ -31,8 +31,6 @@
 
 #include <Arduino.h>
 #include "effect_platervbstereo.h"
-#include "utility/dspinst.h"
-#include "synth_waveform.h"
 
 #define INP_ALLP_COEFF      (0.65f)
 #define LOOP_ALLOP_COEFF    (0.65f)
