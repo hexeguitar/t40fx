@@ -27,9 +27,9 @@ Example:
 ```phaser.depth(0.4f, 0.8f);  // modulation waveform between 0.4 and 0.8```  
 
 ```void feedback(float32_t value);```  
-Controls the amount of feedkack, range 0.0f to 1.0f.  
+Controls the amount of feedback, range 0.0f to 1.0f.  
 Example:  
-```phaser.feednak(0.5f);  // set the feedback to 0.5```  
+```phaser.feedback(0.5f);  // set the feedback to 0.5```  
 
 ```void mix(float32_t value);```  
 Dry / Wet mix ratio. Set to 0.5f for classic phaser sounds. Setting the feedback to 0.0 and the mix to 1.0 (full wet) will produce a vibrato effect.  
@@ -44,7 +44,7 @@ Example:
 ```void set_bypass(bool state);```  
 Disables (true) or enables (false) the phaser.  
 Example:  
-```phaser.set_bypass(true);  // disable the reverb (saves CPU load) ```  
+```phaser.set_bypass(true);  // disable the phaser (saves CPU load) ```  
 
 ```void tgl_bypass(void);```  
 Toggles the current bypass status.  

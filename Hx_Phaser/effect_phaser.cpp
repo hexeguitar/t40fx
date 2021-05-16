@@ -26,7 +26,6 @@
 
 #include <Arduino.h>
 #include "effect_phaser.h"
-#include "utility/dspinst.h"
 
 // ---------------------------- INTERNAL LFO -------------------------------------
 #define LFO_LUT_BITS					8
