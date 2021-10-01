@@ -71,7 +71,7 @@ public:
     {
         n = constrain(n, 0.0f, 1.0f);
         n = map (n, 0.0f, 1.0f, 0.2f, rv_time_k_max);
-        float32_t attn = 0.5f * map(n, 0.0f, rv_time_k_max, 0.5f, 1.0f);
+        float32_t attn = map(n, 0.0f, rv_time_k_max, 0.5f, 0.25f);
         __disable_irq();
         rv_time_k = n;
         input_attn = attn;
