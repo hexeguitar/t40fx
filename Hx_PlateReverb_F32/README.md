@@ -26,12 +26,12 @@ Example:
 ```reverb.lodamp(0.5f);  // cut more bass in the reverb tail to make the sound brighter ```  
 
 ```void diffusion(float32_t n);```  
-diffision controls the density of the reverb tail, lower values add more echo type reflections, higher values produce a lush rich reverb tail. Useful for creating a different type of reverbs: ie. with size set to 0 and diffusion to something in range 0.0f-0.3f the result will be like a ping-ponf delay with room reverb.  
+diffision controls the density of the reverb tail, lower values add more echo type reflections, higher values produce a lush rich reverb tail. Useful for creating a different type of reverbs: ie. with size set to 0 and diffusion to something in range 0.0f-0.3f the result will be like a ping-pong delay with room reverb.  
 Example:  
 ```reverb.density(0.5f);  // alter the allpass coefficients to change the reverb sound ```  
 
 ```void freeze(bool state);```  
-Cuts off the input signal and increases the reverb time coeff to 1.0, thus creating an infinite reverb. Combined with low diffusion settings might produce clicking, so watch out.  
+Cuts off the input signal and increases the reverb time coeff to 1.0, creating an infinite reverb. Combined with low diffusion settings might produce clicking, so use with caution.  
 Example:  
 ```reverb.freeze(true);  // turn freeze on ```  
 
