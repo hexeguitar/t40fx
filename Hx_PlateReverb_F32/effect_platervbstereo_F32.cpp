@@ -1,9 +1,11 @@
 /*  Stereo plate reverb for Teensy 4
- *
+ * 32bit float version for OpenAudio_ArduinoLibrary:
+ * https://github.com/chipaudette/OpenAudio_ArduinoLibrary
+ * 
  *  Author: Piotr Zapart
  *          www.hexefx.com
  *
- * Copyright (c) 2020 by Piotr Zapart
+ * Copyright (c) 2021 by Piotr Zapart
  *
  * Development of this audio library was funded by PJRC.COM, LLC by sales of
  * Teensy and Audio Adaptor boards.  Please support PJRC's efforts to develop
@@ -30,13 +32,12 @@
 
 
 #include <Arduino.h>
-#include "effect_platervbstereo.h"
+#include "effect_platervbstereo_F32.h"
 
 #define INP_ALLP_COEFF      (0.65f)                         // default input allpass coeff
 #define LOOP_ALLOP_COEFF    (0.65f)                         // default loop allpass coeff
 
 #define HI_LOSS_FREQ        (0.3f)                          // scaled center freq for the treble loss filter 
-// #define HI_LOSS_FREQ_MAX    (0.08f)
 #define LO_LOSS_FREQ        (0.06f)                         // scaled center freq for the bass loss filter 
 
 #define LFO_AMPL_BITS       (5)                             // 2^LFO_AMPL_BITS will be the LFO amplitude 
@@ -54,10 +55,7 @@ extern "C" {
 extern const int16_t AudioWaveformSine[257];
 }
 
-#ifdef REVERB_USE_DMAMEM
-
-float32_t DMAMEM input_blockL[AUDIO_BLOCK_SAMPLES];
-float32_t DMAMEM input_blockR[AUDIO_BLOCK_SAMPLES];
+#ifdef REVERB_F32_USE_DMAMEM
 
 float32_t DMAMEM in_allp1_bufL[224]; // input allpass buffers
 float32_t DMAMEM in_allp2_bufL[420];
@@ -80,9 +78,8 @@ float32_t DMAMEM lp_dly3_buf[4365];
 float32_t DMAMEM lp_dly4_buf[3698];
 #endif
 
-AudioEffectPlateReverb::AudioEffectPlateReverb() : AudioStream(2, inputQueueArray)
+AudioEffectPlateReverb_F32::AudioEffectPlateReverb_F32() : AudioStream_F32(2, inputQueueArray_f32)
 {
-    input_attn = 0.5f;
     in_allp_k = INP_ALLP_COEFF;
 
     memset(in_allp1_bufL, 0, sizeof(in_allp1_bufL));
@@ -149,44 +146,24 @@ AudioEffectPlateReverb::AudioEffectPlateReverb() : AudioStream(2, inputQueueArra
     lfo1_adder = (UINT32_MAX + 1)/(AUDIO_SAMPLE_RATE_EXACT * LFO1_FREQ_HZ);
     lfo2_phase_acc = 0;
     lfo2_adder = (UINT32_MAX + 1)/(AUDIO_SAMPLE_RATE_EXACT * LFO2_FREQ_HZ);  
+
+    size(0.5f);
+    hidamp(0.0f);
+    lodamp(0.0f);
+    lowpass(0.0f);
+    diffusion(1.0f);
+    flags.disable = 0;
+    flags.freeze = 0;
 }
 
-// #define sat16(n, rshift) signed_saturate_rshift((n), 16, (rshift))
-
-// TODO: move this to one of the data files, use in output_adat.cpp, output_tdm.cpp, etc
-static const audio_block_t zeroblock = {
-0, 0, 0, {
-0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-#if AUDIO_BLOCK_SAMPLES > 16
-0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-#endif
-#if AUDIO_BLOCK_SAMPLES > 32
-0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-#endif
-#if AUDIO_BLOCK_SAMPLES > 48
-0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-#endif
-#if AUDIO_BLOCK_SAMPLES > 64
-0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-#endif
-#if AUDIO_BLOCK_SAMPLES > 80
-0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-#endif
-#if AUDIO_BLOCK_SAMPLES > 96
-0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-#endif
-#if AUDIO_BLOCK_SAMPLES > 112
-0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-#endif
-} };
-
-void AudioEffectPlateReverb::update()
+void AudioEffectPlateReverb_F32::update()
 {
-    const audio_block_t *blockL, *blockR;
-
 #if defined(__ARM_ARCH_7EM__)
-    audio_block_t *outblockL;
-	audio_block_t *outblockR;
+
+    const audio_block_f32_t *blockL = NULL, *blockR = NULL;
+
+    audio_block_f32_t *outblockL;
+	audio_block_f32_t *outblockR;
 	int i;
 	float32_t input, acc, temp1, temp2;
     uint16_t temp16;
@@ -197,11 +174,12 @@ void AudioEffectPlateReverb::update()
     int32_t y0, y1;
     int64_t y;
     uint32_t idx;
-    static bool cleanup_done = false;
-    // handle bypass, 1st call will clean the buffers to avoid continuing the previous reverb tail
-    if (bypass)
+
+    // handle disable, 1st call will clean the buffers to avoid continuing the previous reverb tail
+    // when disabled, reverb does not procude any output signal. There is no dry/wet mixer (done externally).
+    if (flags.disable)
     {
-        if (!cleanup_done)
+        if (!flags.cleanup_done)
         {
             memset(in_allp1_bufL, 0, sizeof(in_allp1_bufL));
             memset(in_allp2_bufL, 0, sizeof(in_allp2_bufL));
@@ -220,41 +198,26 @@ void AudioEffectPlateReverb::update()
             memset(lp_dly3_buf, 0, sizeof(lp_dly3_buf));
             memset(lp_dly4_buf, 0, sizeof(lp_dly4_buf));
 
-            cleanup_done = true;
+            flags.cleanup_done = true;
         }
-        blockL = receiveReadOnly(0);
-        blockR = receiveReadOnly(1);
-        if (!blockL) blockL = &zeroblock;
-        if (!blockR) blockR = &zeroblock;
-        transmit((audio_block_t *)blockL,0);
-        transmit((audio_block_t *)blockR,1);
-        if (blockL != &zeroblock) release((audio_block_t *)blockL);
-        if (blockR != &zeroblock) release((audio_block_t *)blockR);
-
         return;
     }
-    cleanup_done = false;
+    flags.cleanup_done = false;
 
-
-    blockL = receiveReadOnly(0);
-    blockR = receiveReadOnly(1);
-	outblockL = allocate();
-	outblockR = allocate();
+    blockL = AudioStream_F32::receiveReadOnly_f32(0);
+    blockR = AudioStream_F32::receiveReadOnly_f32(1);
+	outblockL = AudioStream_F32::allocate_f32();
+	outblockR = AudioStream_F32::allocate_f32();
 	if (!outblockL || !outblockR) {
 		if (outblockL) release(outblockL);
 		if (outblockR) release(outblockR);
-		if (blockL) release((audio_block_t *)blockL);
-        if (blockR) release((audio_block_t *)blockR);
+		if (blockL) release((audio_block_f32_t *)blockL);
+        if (blockR) release((audio_block_f32_t *)blockR);
 		return;
 	}
 
-	if (!blockL) blockL = &zeroblock;
-    if (!blockR) blockR = &zeroblock;
-
-    // convert data to float32
-    arm_q15_to_float((q15_t *)blockL->data, input_blockL, AUDIO_BLOCK_SAMPLES);
-    arm_q15_to_float((q15_t *)blockR->data, input_blockR, AUDIO_BLOCK_SAMPLES);
-
+    if (!blockL || !blockR) return;
+    
     rv_time = rv_time_k;
 
 	for (i=0; i < AUDIO_BLOCK_SAMPLES; i++) 
@@ -290,7 +253,7 @@ void AudioEffectPlateReverb::update()
         y += (int64_t)y1 * idx;
         lfo2_out_cos = (int32_t) (y >> (32-8)); // 16bit output   
 
-		input = input_blockL[i] * input_attn;
+		input = blockL->data[i] * input_attn;
         // chained input allpasses, channel L
         acc = in_allp1_bufL[in_allp1_idxL]  + input * in_allp_k;  
         in_allp1_bufL[in_allp1_idxL] = input - in_allp_k * acc;
@@ -312,7 +275,7 @@ void AudioEffectPlateReverb::update()
         in_allp_out_L = acc;
         if (++in_allp4_idxL >= sizeof(in_allp4_bufL)/sizeof(float32_t)) in_allp4_idxL = 0;
 
-        input = input_blockR[i] * input_attn;
+        input = blockR->data[i] * input_attn;
 
         // chained input allpasses, channel R
         acc = in_allp1_bufR[in_allp1_idxR]  + input * in_allp_k;  
@@ -335,6 +298,8 @@ void AudioEffectPlateReverb::update()
         in_allp_out_R = acc;
         if (++in_allp4_idxR >= sizeof(in_allp4_bufR)/sizeof(float32_t)) in_allp4_idxR = 0;
 
+        // shimmer: add octave up for lp_allp_out - TODO someday
+        
         // input allpases done, start loop allpases
         input = lp_allp_out + in_allp_out_R; 
         acc = lp_allp1_buf[lp_allp1_idx] + input * loop_allp_k;                  // input is the lp allpass chain output
@@ -459,11 +424,11 @@ void AudioEffectPlateReverb::update()
         temp1 = acc - master_lowpass_l;
         master_lowpass_l += temp1 * master_lowpass_f;
 
-        outblockL->data[i] =(int16_t)(master_lowpass_l * 32767.0f); //sat16(output * 30, 0);
+        outblockL->data[i] = master_lowpass_l; //sat16(output * 30, 0);
 
         // Channel R
         #ifdef TAP1_MODULATED
-        temp16 = (lp_dly1_idx + lp_dly1_offset_R + (lfo2_out_cos>>LFO_FRAC_BITS)) %  (sizeof(lp_dly1_buf)/sizeof(float32_t));
+        temp16 = (lp_dly1_idx + lp_dly1_offset_R + (lfo2_out_cos>>LFO_FRAC_BITS)) % (sizeof(lp_dly1_buf)/sizeof(float32_t));
         temp1 = lp_dly1_buf[temp16++];    // sample now
         if (temp16  >= sizeof(lp_dly1_buf)/sizeof(float32_t)) temp16 = 0;
         temp2 = lp_dly1_buf[temp16];    // sample next
@@ -471,7 +436,7 @@ void AudioEffectPlateReverb::update()
 
         acc = (temp1*(1.0f-input) + temp2*input)* 0.8f;
         #else
-        temp16 = (lp_dly1_idx + lp_dly1_offset_R) %  (sizeof(lp_dly1_buf)/sizeof(float32_t));
+        temp16 = (lp_dly1_idx + lp_dly1_offset_R) % (sizeof(lp_dly1_buf)/sizeof(float32_t));
         acc = lp_dly1_buf[temp16] * 0.8f;
         #endif
 #ifdef TAP2_MODULATED
@@ -502,20 +467,14 @@ void AudioEffectPlateReverb::update()
         // Master lowpass filter
         temp1 = acc - master_lowpass_r;
         master_lowpass_r += temp1 * master_lowpass_f;
-        outblockR->data[i] =(int16_t)(master_lowpass_r * 32767.0f);
+        outblockR->data[i] = master_lowpass_r;
 		
 	}
-    transmit(outblockL, 0);
-	transmit(outblockR, 1);
-	release(outblockL);
-	release(outblockR);
-	if (blockL != &zeroblock) release((audio_block_t *)blockL);
-    if (blockR != &zeroblock) release((audio_block_t *)blockR);
-
-#elif defined(KINETISL)
-	blockL = receiveReadOnly(0);
-	if (blockL) release(blockL);
-    blockR = receiveReadOnly(1);
-    if (blockR) release(blockR);
+    AudioStream_F32::transmit(outblockL, 0);
+	AudioStream_F32::transmit(outblockR, 1);
+	AudioStream_F32::release(outblockL);
+    AudioStream_F32::release(outblockR);
+	AudioStream_F32::release((audio_block_f32_t *)blockL);
+    AudioStream_F32::release((audio_block_f32_t *)blockR);
 #endif
 }

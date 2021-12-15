@@ -1,9 +1,10 @@
 /*  Stereo plate reverb for Teensy 4
- *
+ * 32bit float version for OpenAudio_ArduinoLibrary:
+ * https://github.com/chipaudette/OpenAudio_ArduinoLibrary
  *  Author: Piotr Zapart
  *          www.hexefx.com
  *
- * Copyright (c) 2020 by Piotr Zapart
+ * Copyright (c) 2021 by Piotr Zapart
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -35,23 +36,21 @@
  * hidamp - hi frequency loss in the reverb tail
  * lodamp - low frequency loss in the reverb tail
  * lowpass - output/master lowpass filter, useful for darkening the reverb sound 
- * diffusion - lower settings will make the reverb tail more "echoey", optimal value 0.65
+ * diffusion - lower settings will make the reverb tail more "echoey".
+ * freeze - infinite reverb tail effect
  * 
  */
-
-
-#ifndef _EFFECT_PLATERVBSTEREO_H
-#define _EFFECT_PLATERVBSTEREO_H
+#ifndef _EFFECT_PLATERVBSTEREO_F32_H
+#define _EFFECT_PLATERVBSTEREO_F32_H
 
 #include <Arduino.h>
 #include "Audio.h"
-#include "AudioStream.h"
+#include "AudioStream_F32.h"
 #include "arm_math.h"
-
 
 // if uncommented will place all the buffers in the DMAMEM section ofd the memory
 // works with single instance of the reverb only
-#define REVERB_USE_DMAMEM
+#define REVERB_F32_USE_DMAMEM
 
 /***
  * Loop delay modulation: comment/uncomment to switch sin/cos 
@@ -61,12 +60,18 @@
 //#define TAP1_MODULATED
 #define TAP2_MODULATED
 
-class AudioEffectPlateReverb : public AudioStream
+class AudioEffectPlateReverb_F32 : public AudioStream_F32
 {
 public:
-    AudioEffectPlateReverb();
+    AudioEffectPlateReverb_F32();
     virtual void update();
 
+    /**
+     * @brief reverb time. Please not the hidamp/lodamp params also control how
+     *  fast the reverb tail dacays.
+     * 
+     * @param n time, range 0.0f to 1.0f
+     */
     void size(float n)
     {
         n = constrain(n, 0.0f, 1.0f);
@@ -77,7 +82,11 @@ public:
         input_attn = attn;
          __enable_irq();
     }
-
+    /**
+     * @brief amount treble loss in the reverb tail
+     * 
+     * @param n range 0.0f to 1.0f
+     */
     void hidamp(float n)
     {
         n = constrain(n, 0.0f, 1.0f);
@@ -85,7 +94,11 @@ public:
         lp_hidamp_k = 1.0f - n;
          __enable_irq();
     }
-    
+    /**
+     * @brief amount og bass lost in the reverb tail
+     * 
+     * @param n range 0.0f to 1.0f
+     */
     void lodamp(float n)
     {
         n = constrain(n, 0.0f, 1.0f);
@@ -94,14 +107,27 @@ public:
         rv_time_scaler = 1.0f - n * 0.12f;        // limit the max reverb time, otherwise it will clip
          __enable_irq();
     }
-
+    /**
+     * @brief lowpass filter applied to the reverb output 
+     *  use it to darken the reverb tail
+     * 
+     * @param n range 0.0f to 1.0f
+     */
     void lowpass(float n)
     {
         n = constrain(n, 0.0f, 1.0f);
-        n = map(n*n*n, 0.0f, 1.0f, 0.05f, 1.0f);
+        n = map(n*n*n, 0.0f, 1.0f, 1.0f, 0.05f);
         master_lowpass_f = n;
     }
-    
+    /**
+     * @brief "echoiness" of the reverb sound. Lower values produce more 
+     *  echo like reflections. 1.0 produces a lush plate reverb.
+     *  Use this parameter together with the "size" to produce different type
+     *  of reverb sounds. Ie, small size (0) + low diffusion create a room type
+     *  reverb sound.
+     * 
+     * @param n 
+     */
     void diffusion(float n)
     {
         n = constrain(n, 0.0f, 1.0f);
@@ -111,22 +137,73 @@ public:
         loop_allp_k = n;
          __enable_irq();
     }
+    /**
+     * @brief Freezes the reverb tank by cutting off the input signal
+     *  and increasing the reverb time coeff to 1.0 giving an infinite
+     *  tail.
+     * 
+     * @param state freeze on (true) or off (false)
+     */
+    void freeze(bool state)
+    {
+        flags.freeze = state;
+        if (state)
+        {
+            rv_time_k_tmp = rv_time_k;      // store the settings
+            lp_lodamp_k_tmp = lp_lodamp_k;
+            lp_hidamp_k_tmp = lp_hidamp_k;
+            
+            __disable_irq();
+            rv_time_k = freeze_rvtime_k;                                      
+            input_attn = freeze_ingain;
+            rv_time_scaler = 1.0f;
+            lp_lodamp_k = freeze_lodamp_k;
+            lp_hidamp_k = freeze_hidamp_k;
 
-    float32_t get_size(void) {return rv_time_k;}
-    bool get_bypass(void) {return bypass;}
-    void set_bypass(bool state) {bypass = state;};
-    void tgl_bypass(void) {bypass ^=1;}
+            __enable_irq();
+        }
+        else
+        {
+            float32_t attn = map(rv_time_k_tmp, 0.0f, rv_time_k_max, 0.5f, 0.25f);    // recalc the in attenuation
+            float32_t sc = 1.0f + lp_lodamp_k_tmp * 0.12f;
+            __disable_irq();
+            rv_time_k = rv_time_k_tmp;                                      // restore the value
+            input_attn = attn;
+            rv_time_scaler = sc;
+            lp_hidamp_k = lp_hidamp_k_tmp;
+            lp_lodamp_k = lp_lodamp_k_tmp;
+            __enable_irq();
+        }
+    }
+    /**
+     * @brief Toggles the freeze function and returns the current state
+     * 
+     * @return true     toggle resulted in freeze on
+     * @return false    toggle resulted in freeze off
+     */
+    bool freeze_tgl() {flags.freeze ^= 1; freeze(flags.freeze); return flags.freeze;}
+    
+    bool freeze_get() {return flags.freeze;}
+
+    float32_t size_get(void) {return rv_time_k;}
+
+    bool disable_get(void) {return flags.disable;}
+    void disable_set(bool state) {flags.disable = state;}
+    bool disable_tgl(void) {flags.disable ^= 1; return flags.disable;}
+
 private:
-    bool bypass = false;
-    audio_block_t *inputQueueArray[2];
-#ifndef REVERB_USE_DMAMEM
-    float32_t input_blockL[AUDIO_BLOCK_SAMPLES];
-    float32_t input_blockR[AUDIO_BLOCK_SAMPLES];
-#endif
-    float32_t input_attn;
+    struct flags_t
+    {
+        unsigned disable:           1;
+        unsigned freeze:            1;
+        unsigned shimmer:           1; // maybe will be added at some point
+        unsigned cleanup_done:      1;
+    }flags;
 
+    audio_block_f32_t *inputQueueArray_f32[2];
+    float32_t input_attn;           
     float32_t in_allp_k;            // input allpass coeff 
-#ifndef REVERB_USE_DMAMEM
+#ifndef REVERB_F32_USE_DMAMEM
     float32_t in_allp1_bufL[224];   // input allpass buffers
     float32_t in_allp2_bufL[420];
     float32_t in_allp3_bufL[856];
@@ -137,7 +214,7 @@ private:
     uint16_t in_allp3_idxL;
     uint16_t in_allp4_idxL;
     float32_t in_allp_out_L;    // L allpass chain output
-#ifndef REVERB_USE_DMAMEM
+#ifndef REVERB_F32_USE_DMAMEM
     float32_t in_allp1_bufR[156]; // input allpass buffers
     float32_t in_allp2_bufR[520];
     float32_t in_allp3_bufR[956];
@@ -148,7 +225,7 @@ private:
     uint16_t in_allp3_idxR;
     uint16_t in_allp4_idxR;
     float32_t in_allp_out_R;    // R allpass chain output
-#ifndef REVERB_USE_DMAMEM
+#ifndef REVERB_F32_USE_DMAMEM
     float32_t lp_allp1_buf[2303]; // loop allpass buffers
     float32_t lp_allp2_buf[2905];
     float32_t lp_allp3_buf[3175];
@@ -160,7 +237,7 @@ private:
     uint16_t lp_allp4_idx;
     float32_t loop_allp_k;         // loop allpass coeff
     float32_t lp_allp_out;
-#ifndef REVERB_USE_DMAMEM
+#ifndef REVERB_F32_USE_DMAMEM
     float32_t lp_dly1_buf[3423];
     float32_t lp_dly2_buf[4589];
     float32_t lp_dly3_buf[4365];
@@ -182,7 +259,9 @@ private:
     const uint16_t lp_dly4_offset_R = 780;  
 
     float32_t lp_hidamp_k;       // loop high band damping coeff
+    float32_t lp_hidamp_k_tmp;  
     float32_t lp_lodamp_k;       // loop low baand damping coeff
+    float32_t lp_lodamp_k_tmp;
 
     float32_t lpf1;             // lowpass filters
     float32_t lpf2;
@@ -203,6 +282,7 @@ private:
 
     const float32_t rv_time_k_max = 0.95f;
     float32_t rv_time_k;         // reverb time coeff
+    float32_t rv_time_k_tmp;     // temp for restoring original value after freeze_off
     float32_t rv_time_scaler;    // with high lodamp settings lower the max reverb time to avoid clipping
 
     uint32_t lfo1_phase_acc;     // LFO 1
@@ -210,6 +290,11 @@ private:
 
     uint32_t lfo2_phase_acc;    // LFO 2
     uint32_t lfo2_adder;
+
+    const float32_t freeze_rvtime_k = 1.0f;
+    const float32_t freeze_ingain = 0.0f;
+    const float32_t freeze_lodamp_k = 0.0f;
+    const float32_t freeze_hidamp_k = 1.0f;
 };
 
 #endif // _EFFECT_PLATEREV_H
