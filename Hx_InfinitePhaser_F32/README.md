@@ -42,7 +42,7 @@ Example:
 ```phaser.feedback(0.5f);  // set the feedback to 0.5```  
 
 ```void mix(float32_t value);```  
-Dry / Wet mix ratio. Set to 0.5f for classic phaser sounds. Setting the feedback to 0.0 and the mix to 1.0 (full wet) will produce a vibrato effect.  
+Dry / Wet mix ratio. Set to 0.5f for classic phaser sounds. 
 Example:  
 ```phaser.mix(0.3f);  // dry = 0.7, wet = 0.3```  
 
