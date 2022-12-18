@@ -462,18 +462,18 @@ void AudioEffectPlateReverb::update()
         outblockL->data[i] =(int16_t)(master_lowpass_l * 32767.0f); //sat16(output * 30, 0);
 
         // Channel R
-        #ifdef TAP1_MODULATED
-        temp16 = (lp_dly1_idx + lp_dly1_offset_R + (lfo2_out_cos>>LFO_FRAC_BITS)) %  (sizeof(lp_dly1_buf)/sizeof(float32_t));
+#ifdef TAP1_MODULATED
+        temp16 = (lp_dly1_idx + lp_dly1_offset_R + (lfo1_out_sin>>LFO_FRAC_BITS)) %  (sizeof(lp_dly1_buf)/sizeof(float32_t));
         temp1 = lp_dly1_buf[temp16++];    // sample now
         if (temp16  >= sizeof(lp_dly1_buf)/sizeof(float32_t)) temp16 = 0;
         temp2 = lp_dly1_buf[temp16];    // sample next
-        input = (float32_t)(lfo2_out_cos & LFO_FRAC_MASK) / ((float32_t)LFO_FRAC_MASK); // interp. k
+        input = (float32_t)(lfo1_out_sin & LFO_FRAC_MASK) / ((float32_t)LFO_FRAC_MASK); // interp. k
 
         acc = (temp1*(1.0f-input) + temp2*input)* 0.8f;
-        #else
+#else
         temp16 = (lp_dly1_idx + lp_dly1_offset_R) %  (sizeof(lp_dly1_buf)/sizeof(float32_t));
         acc = lp_dly1_buf[temp16] * 0.8f;
-        #endif
+#endif
 #ifdef TAP2_MODULATED
         temp16 = (lp_dly2_idx + lp_dly2_offset_R + (lfo1_out_cos>>LFO_FRAC_BITS)) % (sizeof(lp_dly2_buf)/sizeof(float32_t));
         temp1 = lp_dly2_buf[temp16++];
