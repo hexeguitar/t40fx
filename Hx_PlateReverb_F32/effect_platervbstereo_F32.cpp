@@ -457,7 +457,7 @@ void AudioEffectPlateReverb_F32::update()
         input = (float32_t)(lfo2_out_sin & LFO_FRAC_MASK) / ((float32_t)LFO_FRAC_MASK); // interp. k
         acc += (temp1*(1.0f-input) + temp2*input)* 0.6f;
 
-        temp16 = (lp_dly4_idx + lp_dly4_offset_R + (lfo1_out_sin>>LFO_FRAC_BITS)) % (sizeof(lp_dly4_buf)/sizeof(float32_t));
+        temp16 = (lp_dly4_idx + lp_dly4_offset_R + (lfo2_out_cos>>LFO_FRAC_BITS)) % (sizeof(lp_dly4_buf)/sizeof(float32_t));
         temp1 = lp_dly4_buf[temp16++];
         if (temp16  >= sizeof(lp_dly4_buf)/sizeof(float32_t)) temp16 = 0;
         temp2 = lp_dly4_buf[temp16]; 
