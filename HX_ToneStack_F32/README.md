@@ -59,6 +59,6 @@ Typical application using OpenAudio_ArduinoLibrary:
 
 ### Sound Sample  
 
-https://www.youtube.com/watch?v=CsFPGtq5eNM
+[![Teensy4 toneStackStereo_F32](https://img.youtube.com/vi/CsFPGtq5eNM/0.jpg)](https://www.youtube.com/watch?v=CsFPGtq5eNM)
 
 [pic1]: ToneStack_F32.png "Stereo Tone Stack connections"
