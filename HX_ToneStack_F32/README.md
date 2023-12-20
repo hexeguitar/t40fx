@@ -1,4 +1,4 @@
-## Stereo Plate Reverb
+## Stereo Tone Stack
 Fully stereo in/out guitar tone stack component for the [OpenAudio_ArduinoLibrary](https://github.com/chipaudette/OpenAudio_ArduinoLibrary "OpenAudio_ArduinoLibrary").  
 Emulates 9 different EQ models from various guitar amplifiers.  
 Code is based on implementation created by David Yeh and Tim Goetze.  
