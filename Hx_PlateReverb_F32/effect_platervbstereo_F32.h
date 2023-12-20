@@ -1,10 +1,10 @@
 /*  Stereo plate reverb for Teensy 4
- * 32bit float version for OpenAudio_ArduinoLibrary:
- * https://github.com/chipaudette/OpenAudio_ArduinoLibrary
+ *  32bit float version for OpenAudio_ArduinoLibrary:
+ *  https://github.com/chipaudette/OpenAudio_ArduinoLibrary
  *  Author: Piotr Zapart
  *          www.hexefx.com
  *
- * Copyright (c) 2021 by Piotr Zapart
+ * Copyright (c) 2023 by Piotr Zapart
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -80,7 +80,7 @@ public:
         __disable_irq();
         rv_time_k = n;
         input_attn = attn;
-         __enable_irq();
+        __enable_irq();
     }
     /**
      * @brief amount treble loss in the reverb tail
@@ -92,7 +92,7 @@ public:
         n = constrain(n, 0.0f, 1.0f);
         __disable_irq();
         lp_hidamp_k = 1.0f - n;
-         __enable_irq();
+        __enable_irq();
     }
     /**
      * @brief amount og bass lost in the reverb tail
@@ -105,7 +105,7 @@ public:
         __disable_irq();
         lp_lodamp_k = -n;
         rv_time_scaler = 1.0f - n * 0.12f;        // limit the max reverb time, otherwise it will clip
-         __enable_irq();
+        __enable_irq();
     }
     /**
      * @brief lowpass filter applied to the reverb output 
@@ -187,14 +187,23 @@ public:
 
     float32_t size_get(void) {return rv_time_k;}
 
-    bool disable_get(void) {return flags.disable;}
-    void disable_set(bool state) {flags.disable = state;}
-    bool disable_tgl(void) {flags.disable ^= 1; return flags.disable;}
+    bool bypass_get(void) {return flags.bypass;}
+    void bypass_set(bool state) 
+    {
+        flags.bypass = state;
+        if (state) freeze(false);       // disable freeze in bypass mode
+    }
+    bool bypass_tgl(void) 
+    {
+        flags.bypass ^= 1; 
+        if (flags.bypass) freeze(false);       // disable freeze in bypass mode
+        return flags.bypass;
+    }
 
 private:
     struct flags_t
     {
-        unsigned disable:           1;
+        unsigned bypass:           1;
         unsigned freeze:            1;
         unsigned shimmer:           1; // maybe will be added at some point
         unsigned cleanup_done:      1;

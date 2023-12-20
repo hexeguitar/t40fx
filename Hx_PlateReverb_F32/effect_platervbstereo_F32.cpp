@@ -5,7 +5,7 @@
  *  Author: Piotr Zapart
  *          www.hexefx.com
  *
- * Copyright (c) 2021 by Piotr Zapart
+ * Copyright (c) 2023 by Piotr Zapart
  *
  * Development of this audio library was funded by PJRC.COM, LLC by sales of
  * Teensy and Audio Adaptor boards.  Please support PJRC's efforts to develop
@@ -152,7 +152,7 @@ AudioEffectPlateReverb_F32::AudioEffectPlateReverb_F32() : AudioStream_F32(2, in
     lodamp(0.0f);
     lowpass(0.0f);
     diffusion(1.0f);
-    flags.disable = 0;
+    flags.bypass = 0;
     flags.freeze = 0;
 }
 
@@ -177,7 +177,7 @@ void AudioEffectPlateReverb_F32::update()
 
     // handle disable, 1st call will clean the buffers to avoid continuing the previous reverb tail
     // when disabled, reverb does not procude any output signal. There is no dry/wet mixer (done externally).
-    if (flags.disable)
+    if (flags.bypass)
     {
         if (!flags.cleanup_done)
         {
@@ -427,18 +427,18 @@ void AudioEffectPlateReverb_F32::update()
         outblockL->data[i] = master_lowpass_l; //sat16(output * 30, 0);
 
         // Channel R
-#ifdef TAP1_MODULATED
-        temp16 = (lp_dly1_idx + lp_dly1_offset_R + (lfo1_out_sin>>LFO_FRAC_BITS)) % (sizeof(lp_dly1_buf)/sizeof(float32_t));
+        #ifdef TAP1_MODULATED
+        temp16 = (lp_dly1_idx + lp_dly1_offset_R + (lfo2_out_cos>>LFO_FRAC_BITS)) % (sizeof(lp_dly1_buf)/sizeof(float32_t));
         temp1 = lp_dly1_buf[temp16++];    // sample now
         if (temp16  >= sizeof(lp_dly1_buf)/sizeof(float32_t)) temp16 = 0;
         temp2 = lp_dly1_buf[temp16];    // sample next
-        input = (float32_t)(lfo1_out_sin & LFO_FRAC_MASK) / ((float32_t)LFO_FRAC_MASK); // interp. k
+        input = (float32_t)(lfo2_out_cos & LFO_FRAC_MASK) / ((float32_t)LFO_FRAC_MASK); // interp. k
 
         acc = (temp1*(1.0f-input) + temp2*input)* 0.8f;
-#else
+        #else
         temp16 = (lp_dly1_idx + lp_dly1_offset_R) % (sizeof(lp_dly1_buf)/sizeof(float32_t));
         acc = lp_dly1_buf[temp16] * 0.8f;
-#endif
+        #endif
 #ifdef TAP2_MODULATED
         temp16 = (lp_dly2_idx + lp_dly2_offset_R + (lfo1_out_cos>>LFO_FRAC_BITS)) % (sizeof(lp_dly2_buf)/sizeof(float32_t));
         temp1 = lp_dly2_buf[temp16++];

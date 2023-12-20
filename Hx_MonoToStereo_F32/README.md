@@ -34,7 +34,7 @@ returns the current bypass setting.
 
 ### Sound example:  
 
-[![Teensy4 monoToStereo_F32](http://img.youtube.com/vi/y2SUNxpsVs0/0.jpg)](http://www.youtube.com/watch?v=y2SUNxpsVs0)
+[![Teensy4 monoToStereo_F32](https://img.youtube.com/vi/y2SUNxpsVs0/0.jpg)](https://www.youtube.com/watch?v=y2SUNxpsVs0)
 
 
 

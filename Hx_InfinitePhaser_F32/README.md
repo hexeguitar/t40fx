@@ -64,6 +64,6 @@ Returns the current bypass status.
 
 ### Sound example:  
 
-[![Teensy4 InfinitePhaser_F32](http://img.youtube.com/vi/IxoAJXqS40E/0.jpg)](http://www.youtube.com/watch?v=IxoAJXqS40E)
+[![Teensy4 InfinitePhaser_F32](https://img.youtube.com/vi/IxoAJXqS40E/0.jpg)](https://www.youtube.com/watch?v=IxoAJXqS40E)
 
 [pic1]: InfinitePhaser_patch.png "Internal structure"
