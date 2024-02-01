@@ -1,4 +1,9 @@
 # t40fx
+## OBSOLETE  
+Further work on Teensy audio components is available as new extention for the OpenAudio_ArduinoLibrary:  
+library: https://github.com/hexeguitar/hexefx_audiolib_F32  
+examples: https://github.com/hexeguitar/hexefx_audiolib_F32_examples  
+
 Teensy4.x Audio Lib Components:  
 ## [Stereo Guitar Tone Stack F32](https://github.com/hexeguitar/t40fx/tree/main/HX_ToneStack_F32 "Stereo Guitar Tone Stack F32") - version for [OpenAudio_ArduinoLibrary](https://github.com/chipaudette/OpenAudio_ArduinoLibrary "OpenAudio_ArduinoLibrary")  
 ## [Mono to Stereo F32](https://github.com/hexeguitar/t40fx/tree/main/Hx_MonoToStereo_F32 "Mono to Stereo F32") - version for [OpenAudio_ArduinoLibrary](https://github.com/chipaudette/OpenAudio_ArduinoLibrary "OpenAudio_ArduinoLibrary")  
